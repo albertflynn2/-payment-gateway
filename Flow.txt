@@ -1,0 +1,143 @@
+Flow Diagram
+User -> Frontend -> PaymentController -> PaymentService -> PaymentRepository -> Database
+     <- Frontend <- PaymentController <- PaymentService <- PaymentRepository <- Database
+	 
+Explanation of Each Class
+PaymentGatewayApplication
+
+Location: com.example.payment_gateway
+Description: The main entry point of the Spring Boot application. It initializes and runs the application.
+
+Code:
+package com.example.payment_gateway;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+@SpringBootApplication
+@EnableJpaRepositories
+public class PaymentGatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(PaymentGatewayApplication.class, args);
+    }
+}
+
+Payment
+
+Location: com.example.payment_gateway.entity
+Description: Represents the payment entity with fields like id, paymentScheme, transactionId, amount, and status. It is annotated with @Entity to indicate that it is a JPA entity.
+
+Code:
+package com.example.payment_gateway.entity;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class Payment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String paymentScheme;
+    private String transactionId;
+    private Double amount;
+    private String status;
+
+    // Getters and Setters
+}
+
+PaymentRepository
+
+Location: com.example.payment_gateway.repository
+Description: Extends JpaRepository to provide CRUD operations for the Payment entity. It includes a custom query method findByPaymentScheme.
+
+Code:
+package com.example.payment_gateway.repository;
+
+import com.example.payment_gateway.entity.Payment;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface PaymentRepository extends JpaRepository<Payment, Long> {
+    List<Payment> findByPaymentScheme(String paymentScheme);
+}
+
+PaymentService
+
+Location: com.example.payment_gateway.service
+Description: Contains business logic for processing payments. It uses PaymentRepository to interact with the database.
+
+Code:
+package com.example.payment_gateway.service;
+
+import com.example.payment_gateway.entity.Payment;
+import com.example.payment_gateway.repository.PaymentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class PaymentService {
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    public Payment createPayment(Payment payment) {
+        return paymentRepository.save(payment);
+    }
+
+    public Payment getPayment(Long id) {
+        return paymentRepository.findById(id).orElse(null);
+    }
+
+    public List<Payment> getPaymentsByScheme(String paymentScheme) {
+        return paymentRepository.findByPaymentScheme(paymentScheme);
+    }
+}
+
+PaymentController
+
+Location: com.example.payment_gateway.controller
+Description: Handles HTTP requests related to payments. It uses PaymentService to process the requests.
+
+Code:
+package com.example.payment_gateway.controller;
+
+import com.example.payment_gateway.entity.Payment;
+import com.example.payment_gateway.service.PaymentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/payments")
+public class PaymentController {
+    @Autowired
+    private PaymentService paymentService;
+
+    @PostMapping
+    public Payment createPayment(@RequestBody Payment payment) {
+        return paymentService.createPayment(payment);
+    }
+
+    @GetMapping("/{id}")
+    public Payment getPayment(@PathVariable Long id) {
+        return paymentService.getPayment(id);
+    }
+
+    @GetMapping
+    public List<Payment> getAllPayments() {
+        return paymentService.getPaymentsByScheme("Credit Card");
+    }
+}
+
+Summary
+User: Initiates a payment request through the frontend.
+Frontend: Sends the payment request to the backend.
+PaymentController: Handles the HTTP request and forwards it to the PaymentService.
+PaymentService: Processes the payment request and interacts with the PaymentRepository.
+PaymentRepository: Performs CRUD operations on the Payment entity and interacts with the database.
+Database: Stores the payment data.
